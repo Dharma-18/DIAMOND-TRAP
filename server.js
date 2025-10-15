@@ -1,79 +1,91 @@
 import express from "express";
-import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-import cors from "cors"; 
+import cors from "cors";
+import { MongoClient } from "mongodb"; // Use the MongoDB driver
 
+// --- Basic Setup ---
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
 const app = express();
-const PORT = 3000;
 
-// --- Setup File Paths ---
-// Define the path to your static files directory (the 'Public' folder)
-const publicDir = path.join(__dirname, "Public");
+// --- 1. DYNAMIC PORT FOR AZURE ---
+// Azure provides the port to use via an environment variable.
+// We use that port, or fall back to 3000 for local testing.
+const port = process.env.PORT || 3000;
 
-// Create 'data' directory if it doesn't exist
-const dataDir = path.join(__dirname, "Data"); // NOTE: Using 'Data' to match your image
-if (!fs.existsSync(dataDir)) {
-    fs.mkdirSync(dataDir);
+// --- 2. DATABASE CONNECTION ---
+// Get the secret connection string from the Azure App Service configuration.
+const uri = process.env.COSMOSDB_CONNECTION_STRING;
+
+// Check if the connection string exists. If not, the app can't start.
+if (!uri) {
+    console.error("FATAL ERROR: COSMOSDB_CONNECTION_STRING environment variable is not set.");
+    process.exit(1); // Exit the application if the database connection string is missing.
 }
-const playersFile = path.join(dataDir, "players.json");
 
+const client = new MongoClient(uri);
+let playersCollection; // This variable will hold our connection to the 'winners' collection
+
+// Asynchronous function to connect to the database
+async function connectDb() {
+    try {
+        await client.connect();
+        const database = client.db("gameDb"); // The database name you created
+        playersCollection = database.collection("winners"); // The collection name you created
+        console.log("Successfully connected to Azure Cosmos DB!");
+    } catch (error) {
+        console.error("Failed to connect to the database", error);
+        await client.close();
+        process.exit(1); // Exit if we can't connect to the DB
+    }
+}
 
 // --- Middleware ---
-app.use(cors()); 
+app.use(cors());
 app.use(express.json());
 
-// **CRITICAL FIX:** Tell Express to serve files from the 'Public' folder.
-app.use(express.static(publicDir)); 
+// Serve the static files (HTML, CSS, JS) from the 'Public' folder
+const publicDir = path.join(__dirname, "Public");
+app.use(express.static(publicDir));
 
 
-// --- API Endpoints ---
-// (API code for /api/players POST and GET remains the same as before)
-// ... [Existing API code goes here] ...
-app.get("/api/players", (req, res) => {
-    fs.readFile(playersFile, "utf8", (err, data) => {
-        if (err) {
-            if (err.code === 'ENOENT') return res.send([]); 
-            return res.status(500).send("Error reading player data");
-        }
-        res.send(JSON.parse(data || "[]"));
-    });
+// --- API Endpoints (Using the Database) ---
+
+// GET: Fetch all player records from the database
+app.get("/api/players", async (req, res) => {
+    try {
+        const players = await playersCollection.find({}).toArray();
+        res.json(players); // Send the records as JSON
+    } catch (error) {
+        console.error("Error fetching player data:", error);
+        res.status(500).send("Error fetching player data");
+    }
 });
 
-app.post("/api/players", (req, res) => {
-    const newRecord = req.body; 
-    fs.readFile(playersFile, "utf8", (err, data) => {
-        let players = [];
-        if (!err && data) {
-            try {
-                players = JSON.parse(data);
-            } catch (e) {
-                console.error("Error parsing players.json:", e);
-                players = [];
-            }
-        }
-        
-        players.push(newRecord);
-        
-        fs.writeFile(playersFile, JSON.stringify(players, null, 2), (err) => {
-            if (err) return res.status(500).send("Error saving data");
-            res.send({ message: "Player data saved successfully" });
-        });
-    });
+// POST: Add a new player record to the database
+app.post("/api/players", async (req, res) => {
+    try {
+        const newRecord = req.body;
+        const result = await playersCollection.insertOne(newRecord);
+        res.status(201).json({ message: "Player data saved successfully", insertedId: result.insertedId });
+    } catch (error) {
+        console.error("Error saving player data:", error);
+        res.status(500).send("Error saving data");
+    }
 });
 
 
-// **FIX 2:** Explicitly serve index.html when the root '/' is requested
+// Fallback to serve index.html for the root route
 app.get('/', (req, res) => {
     res.sendFile(path.join(publicDir, 'index.html'));
 });
 
 
 // --- Start Server ---
-app.listen(PORT, () => {
-    console.log(`🚀 Server running at http://localhost:${PORT}`);
-    console.log(`Open in browser: http://localhost:${PORT}`);
+// Connect to the database first, then start the web server.
+connectDb().then(() => {
+    app.listen(port, () => {
+        console.log(`🚀 Server running on port ${port}`);
+    });
 });
