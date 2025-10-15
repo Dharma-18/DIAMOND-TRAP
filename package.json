@@ -1,7 +1,7 @@
 {
   "name": "diamond-trap",
   "version": "1.0.0",
-  "description": "",
+  "description": "My Diamond Trap Game",
   "main": "Server.js",
   "scripts": {
     "test": "echo \"No tests to run\"",
