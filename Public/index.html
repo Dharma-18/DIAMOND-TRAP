@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Diamond Trap</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+    <div id="menuContainer" class="menu">
+        <h1>💎 DIAMOND TRAP 💎</h1>
+        <input type="text" id="playerName" placeholder="Enter Player Name" />
+        <div class="menu-buttons">
+            <button id="startBtn" disabled>Start</button>
+            <button id="settingsBtn">Settings</button>
+            <button id="exitBtn">Exit</button>
+        </div>
+    </div>
+
+    <div id="gameContainer" class="hidden">
+        <div id="playerHistory">
+            <h2>Player History</h2>
+            <ul id="historyList"></ul>
+        </div>
+
+        <div class="game-area">
+            <div class="hud">
+                <span id="displayPlayerName"></span>
+                <span id="diamondDisplay">💎 Diamonds: <span id="diamondCount">0</span></span>
+                <button id="restartBtn" class="hidden">Restart</button>
+            </div>
+
+            <div id="message"></div>
+            <div id="gridContainer"></div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

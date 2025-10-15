@@ -1,0 +1,8 @@
+runtime: nodejs20 # Use a current Node.js version
+service: default   # Deploy to the default service
+
+# This tells GAE to send all traffic (the static files and the API endpoints) 
+# to your running Node.js server, which will handle the requests via Express.
+handlers:
+- url: /.*
+  script: auto
