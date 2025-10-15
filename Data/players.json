@@ -78,5 +78,25 @@
     "name": "kichulu",
     "result": "🏆 Win",
     "diamonds": 1
+  },
+  {
+    "name": "joker",
+    "result": "🏆 Win",
+    "diamonds": 1
+  },
+  {
+    "name": "joker",
+    "result": "💥 Lost",
+    "diamonds": 1
+  },
+  {
+    "name": "joker",
+    "result": "💥 Lost",
+    "diamonds": 1
+  },
+  {
+    "name": "joker",
+    "result": "🏆 Win",
+    "diamonds": 2
   }
 ]
