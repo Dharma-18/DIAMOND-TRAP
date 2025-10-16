@@ -14,7 +14,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const historyList = document.getElementById("historyList");
 
     // --- Game Variables ---
-    const API_URL = "http://localhost:3000/api/players";
+    const API_URL = "/api/players"; // This is the only change you need!
     let gridSize = 9;
     let playerPosition = 0; // Player starts at top-left (index 0)
     let npcPosition = 0;    // Will be randomized in startGame
