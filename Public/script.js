@@ -1,3 +1,4 @@
+// Test comment to verify GitHub Actions fix
 document.addEventListener("DOMContentLoaded", () => {
     // --- Select Elements (No change here) ---
     const menuContainer = document.getElementById("menuContainer");
@@ -14,13 +15,15 @@ document.addEventListener("DOMContentLoaded", () => {
     const historyList = document.getElementById("historyList");
 
     // --- Game Variables ---
-    const API_URL = "/api/players"; // This is the only change you need!
+    // =======================================================================
+    // MODIFICATION: Removed the old API_URL variable. We don't need it.
+    // const API_URL = "/api/players"; 
+    // =======================================================================
     let gridSize = 9;
-    let playerPosition = 0; // Player starts at top-left (index 0)
-    let npcPosition = 0;    // Will be randomized in startGame
+    let playerPosition = 0;
+    let npcPosition = 0;
     let diamondsCollected = 0;
     let npcInterval;
-    // Diamond Speed: 400ms (Slower than player's instant movement)
     let npcSpeed = 400; 
     let playerName = "";
     let playerHistory = [];
@@ -30,20 +33,15 @@ document.addEventListener("DOMContentLoaded", () => {
     const EXIT_POS = gridSize * gridSize - 1;
 
 
-    // --- Helper Function: Get Random Starting Position for Diamond ---
+    // --- Helper Function: Get Random Starting Position for Diamond (No change) ---
     function getStartingNpcPosition() {
         const playerRow = 0;
         const playerCol = 0;
         
-        // Define a 3x3 area (radius 1) around the player's start at (0, 0)
-        // This includes positions 1, 9, and 10 (cells[0], cells[1], cells[9], cells[10])
         const nearbyPositions = [];
-
         for (let r = playerRow; r <= playerRow + 1; r++) {
             for (let c = playerCol; c <= playerCol + 1; c++) {
                 const pos = r * gridSize + c;
-                
-                // Must be within grid, not the player's start (0), and not the exit (80)
                 if (pos < gridSize * gridSize && pos !== playerPosition && pos !== EXIT_POS) {
                     nearbyPositions.push(pos);
                 }
@@ -51,7 +49,6 @@ document.addEventListener("DOMContentLoaded", () => {
         }
         
         if (nearbyPositions.length === 0) {
-            // Fallback: If initial logic is somehow blocked, ensure a valid start
             return 1; 
         }
 
@@ -60,7 +57,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
 
-    // --- Utility Function: Clear NPC Interval ---
+    // --- Utility Function: Clear NPC Interval (No change) ---
     function stopNPC() {
         if (npcInterval) {
             clearInterval(npcInterval);
@@ -86,7 +83,7 @@ document.addEventListener("DOMContentLoaded", () => {
         updateGrid();
     }
 
-    // --- Update Player/NPC on Grid (No major change) ---
+    // --- Update Player/NPC on Grid (No change) ---
     function updateGrid() {
         const cells = document.querySelectorAll(".cell");
         cells.forEach((cell, index) => {
@@ -99,30 +96,26 @@ document.addEventListener("DOMContentLoaded", () => {
             cell.classList.remove("trail", "blast-effect", "escape-effect", "player-win", "npc-win");
         });
 
-        // 1. Draw Trail
         playerTrail.forEach(pos => {
             if (pos !== playerPosition) {
                  cells[pos].classList.add("trail");
             }
         });
 
-        // 2. Place Player (Hunter)
         if (playerPosition >= 0 && playerPosition < cells.length) {
             cells[playerPosition].textContent = "🧍";
         }
 
-        // 3. Place NPC/Diamond (Prey)
         if (npcPosition >= 0 && npcPosition < cells.length && playerPosition !== npcPosition && npcPosition !== EXIT_POS) {
             cells[npcPosition].textContent = "💎";
         }
         
-        // Handle overlap display: If Diamond is on the Exit, show both if Player isn't there
         if (npcPosition === EXIT_POS && playerPosition !== EXIT_POS) {
              cells[EXIT_POS].textContent = "🚪💎"; 
         }
     }
 
-    // --- Player Movement (Instantaneous) ---
+    // --- Player Movement (No change) ---
     function movePlayer(direction) {
         if (!gameActive) {
             return;
@@ -155,11 +148,10 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    // --- NPC/Diamond Movement (Slower, moving TOWARDS the exit) ---
+    // --- NPC/Diamond Movement (No change) ---
     function moveNPC() {
         if (!gameActive) return;
 
-        // Diamond is trying to move towards the Exit (bottom right)
         const exitRow = Math.floor(EXIT_POS / gridSize);
         const exitCol = EXIT_POS % gridSize;
 
@@ -170,12 +162,10 @@ document.addEventListener("DOMContentLoaded", () => {
             .map(d => npcPosition + d)
             .filter(pos => pos >= 0 && pos < gridSize * gridSize);
 
-        // Simple heuristic: Move to the cell that is closest to the Exit
         for (const pos of possibleMoves) {
             const nextRow = Math.floor(pos / gridSize);
             const nextCol = pos % gridSize;
             
-            // Calculate Manhattan distance to the exit
             const distance = Math.abs(exitRow - nextRow) + Math.abs(exitCol - nextCol);
 
             if (distance < minDistanceToExit) {
@@ -192,56 +182,39 @@ document.addEventListener("DOMContentLoaded", () => {
         updateGrid();
     }
 
-    // --- Collision Detection (Player Win / Diamond Loss) ---
+    // --- Collision Detection (No change) ---
     function checkCollision() {
         const cells = document.querySelectorAll(".cell");
         
-        // 1. DIAMOND ESCAPES (Player LOSES)
         if (npcPosition === EXIT_POS) {
             message.textContent = "💨 You Lost! Diamond Escaped.";
-            
             gameActive = false; 
-            
-            // Show Diamond on the Exit cell, apply 'Lost' color
             cells.forEach(cell => cell.textContent = "");
             cells[EXIT_POS].textContent = "💎"; 
             cells[EXIT_POS].classList.add("npc-win"); 
-
             endGame(false); 
             return;
         }
         
-        // 2. PLAYER CAPTURES DIAMOND (Player WINS)
         if (playerPosition === npcPosition) {
             message.textContent = "🏆 Player Win! Diamond Captured!";
-            
             gameActive = false;
-            
-            // Show Player on the captured cell, apply 'Win' color
             cells.forEach(cell => cell.textContent = "");
             cells[playerPosition].textContent = "🧍"; 
             cells[playerPosition].classList.add("player-win"); 
-
             diamondsCollected++;
             diamondCountEl.textContent = diamondsCollected;
-            
             endGame(true); 
         }
     }
 
-    // --- API and Game Flow Functions ---
-    async function saveGameResult(record) {
-        try {
-            await fetch(API_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(record)
-            });
-        } catch (error) {
-            console.error("Failed to save game data to server:", error);
-        }
-    }
+    // =======================================================================
+    // MODIFICATION: Removed the old saveGameResult function.
+    // async function saveGameResult(record) { ... }
+    // =======================================================================
 
+
+    // --- Game Flow Functions ---
     function startGame(isRestart = false) {
         if (!isRestart) {
             playerName = playerNameInput.value.trim();
@@ -252,17 +225,12 @@ document.addEventListener("DOMContentLoaded", () => {
         }
         
         stopNPC(); 
-        
         menuContainer.classList.add("hidden");
         gameContainer.classList.remove("hidden");
-        
         gameActive = true; 
         message.textContent = "";
         restartBtn.classList.add("hidden");
-        
-        // Player always starts at 0
         playerPosition = 0;    
-        // Diamond starts near player
         npcPosition = getStartingNpcPosition(); 
         playerTrail = [];
 
@@ -273,15 +241,27 @@ document.addEventListener("DOMContentLoaded", () => {
         npcInterval = setInterval(moveNPC, npcSpeed);
     }
 
+    // =======================================================================
+    // MODIFICATION: The endGame function is updated to call Firebase.
+    // =======================================================================
     function endGame(won) {
         stopNPC();
         restartBtn.classList.remove("hidden");
 
-        const result = won ? "🏆 Win" : "💥 Lost";
-        const record = { name: playerName, result, diamonds: diamondsCollected };
-        
-        saveGameResult(record); 
+        // 1. Determine the result for Firebase ('win' or 'lose')
+        const gameResultForFirebase = won ? "win" : "lose";
 
+        // 2. Call the global Firebase function from firebase-init.js
+        // We check if the function exists before calling it, which is good practice.
+        if (window.recordGameResult) {
+            window.recordGameResult(gameResultForFirebase, playerName);
+        } else {
+            console.error("Firebase function not found. Is firebase-init.js loaded correctly?");
+        }
+
+        // 3. This part for the local history display remains the same.
+        const resultForDisplay = won ? "🏆 Win" : "💥 Lost";
+        const record = { name: playerName, result: resultForDisplay, diamonds: diamondsCollected };
         playerHistory.push(record);
         updateHistory();
 
@@ -296,13 +276,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function exitGame() {
         stopNPC();
-        
         playerName = "";
         diamondsCollected = 0;
         diamondCountEl.textContent = 0;
         playerNameInput.value = "";
         startBtn.disabled = true; 
-        
         menuContainer.classList.remove("hidden");
         gameContainer.classList.add("hidden");
     }
@@ -322,7 +300,8 @@ document.addEventListener("DOMContentLoaded", () => {
             historyList.appendChild(li);
         });
     }
-    // --- Event Listeners ---
+
+    // --- Event Listeners (Cleaned up duplicates) ---
     startBtn.addEventListener("click", () => startGame(false));
     restartBtn.addEventListener("click", restartGame);
     exitBtn.addEventListener("click", exitGame);
@@ -362,26 +341,4 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         }
     });
-
-
-    // --- Event Listeners (No change here) ---
-    startBtn.addEventListener("click", () => startGame(false));
-    restartBtn.addEventListener("click", restartGame);
-    exitBtn.addEventListener("click", exitGame);
-    settingsBtn.addEventListener("click", openSettings);
-
-    playerNameInput.addEventListener("input", () => {
-        startBtn.disabled = playerNameInput.value.trim() === "";
-    });
-
-    document.addEventListener("keydown", (e) => {
-        if (gameActive) {
-            if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key)) {
-                e.preventDefault();
-                movePlayer(e.key);
-            }
-        }
-    });
-    
-
 });
